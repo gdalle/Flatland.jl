@@ -1,5 +1,5 @@
-function rail_coords(mapf::MAPF)
-    g::FlatlandGraph = mapf.graph
+function rail_coords(mapf::FlatlandMAPF)
+    (; g, sources, destinations) = mapf
 
     P1 = Dict(NORTH => (0, -0.5), EAST => (-0.5, 0), SOUTH => (0, 0.5), WEST => (0.5, 0))
     P2 = Dict(NORTH => (0, -0.3), EAST => (-0.3, 0), SOUTH => (0, 0.3), WEST => (0.3, 0))
@@ -12,7 +12,7 @@ function rail_coords(mapf::MAPF)
     X_limits, Y_limits = Float64[], Float64[]
     X_stations, Y_stations = Float64[], Float64[]
 
-    station_vertices = union(mapf.sources, mapf.destinations)
+    station_vertices = union(sources, destinations)
     station_coords = [get_label(g, v)[1:2] for v in station_vertices]
 
     for i in 1:h, j in 1:w
@@ -43,35 +43,36 @@ function rail_coords(mapf::MAPF)
     return (X_lines, Y_lines), (X_limits, Y_limits), (X_stations, Y_stations)
 end
 
-function flatland_agent_coords(mapf::MAPF, solution::Solution, t::Integer)
-    g::FlatlandGraph = mapf.graph
+function flatland_agent_coords(mapf::FlatlandMAPF, solution::Solution, t::Integer)
+    (; g) = mapf
     h, w = get_height(g), get_width(g)
     XY = Tuple{Float64,Float64}[]
     M, A = Symbol[], Int[]
 
     for a in 1:length(solution)
-        path = solution[a]
-        for (s, v) in path
-            if s == t
-                i, j, direction, kind = get_label(g, v)
-                if kind == REAL
-                    x, y = j, h - i + 1
-                    if direction == NORTH
-                        m = :utriangle
-                    elseif direction == EAST
-                        m = :rtriangle
-                    elseif direction == SOUTH
-                        m = :dtriangle
-                    elseif direction == WEST
-                        m = :ltriangle
-                    else
-                        m = :xcross
-                    end
-
-                    push!(A, a)
-                    push!(XY, (x, y))
-                    push!(M, m)
+        timed_path = solution[a]
+        (; t0, path) = timed_path
+        k = t - t0 + 1
+        if 1 <= k <= length(path)
+            v = path[k]
+            i, j, direction, kind = get_label(g, v)
+            if kind == REAL
+                x, y = j, h - i + 1
+                if direction == NORTH
+                    m = :utriangle
+                elseif direction == EAST
+                    m = :rtriangle
+                elseif direction == SOUTH
+                    m = :dtriangle
+                elseif direction == WEST
+                    m = :ltriangle
+                else
+                    m = :xcross
                 end
+
+                push!(A, a)
+                push!(XY, (x, y))
+                push!(M, m)
             end
         end
     end
@@ -79,18 +80,18 @@ function flatland_agent_coords(mapf::MAPF, solution::Solution, t::Integer)
     return A, XY, M
 end
 
-function add_agents!(ax)
+function add_agents!(ax::Axis)
     A = Observable(Int[])
     XY = Observable(Point2f[])
     M = Observable(Symbol[])
-    scatter!(ax, XY; marker=:rect, color=:yellow, markersize=35)
+    scatter!(ax, XY; marker=:rect, color=:orange, markersize=35)
     # scatter!(ax, XY; marker=M, color="white", markersize=15)
-    text!(ax, @lift(string.($A)); position=XY, color="black", align=(:center, :center))
+    text!(ax, @lift(string.($A)); position=XY, color=:black, align=(:center, :center))
     return A, XY, M
 end
 
-function plot_flatland_graph(mapf::MAPF)
-    g::FlatlandGraph = mapf.graph
+function plot_flatland_graph(mapf::FlatlandMAPF)
+    (; g) = mapf
     xy_lines, xy_limits, xy_stations = rail_coords(mapf)
     h, w = get_height(g), get_width(g)
     fig = Figure(; figure_padding=1)

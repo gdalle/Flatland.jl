@@ -1,3 +1,4 @@
+using Flatland
 using GLMakie
 using Graphs
 using MultiAgentPathFinding
@@ -23,7 +24,7 @@ pyenv = rail_env.RailEnv(;
 pyenv.reset();
 mapf = flatland_mapf(pyenv);
 
-solution_coop = cooperative_astar(mapf);
+solution_coop = cooperative_astar(mapf, 1:nb_agents(mapf));
 is_feasible(solution_coop, mapf)
 flowtime(solution_coop, mapf)
 
@@ -31,7 +32,7 @@ fig, (A, XY, M) = plot_flatland_graph(mapf);
 fig
 solution = copy(solution_coop);
 framerate = 3
-tmax = maximum(t for path in solution for (t, v) in path)
+tmax = max_time(solution)
 @showprogress for t in 1:tmax
     A[], XY[], M[] = flatland_agent_coords(mapf, solution, t)
     sleep(1 / framerate)

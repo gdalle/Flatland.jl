@@ -24,7 +24,7 @@ W = 40  # width
 H = 40  # height
 C = 5  # cities
 A = 100  # agents
-K = 50  # nb of instances
+K = 10  # nb of instances
 
 ## Data generation
 
@@ -45,7 +45,7 @@ pyenv = rail_env.RailEnv(;
 )
 
 mapfs = Vector{FlatlandMAPF}(undef, K);
-@showprogress "Generating instances: " for k in 1:K
+@showprogress "Generating instances" for k in 1:K
     pyenv.reset()
     mapfs[k] = flatland_mapf(pyenv)
 end
@@ -69,13 +69,13 @@ solutions_coop = Vector{Solution}(undef, K);
 end
 
 solutions_lns2 = Vector{Solution}(undef, K);
-prog = Progress(K; desc="Feasibility search: ");
+prog = Progress(K; desc="Feasibility search");
 @threads for k in 1:K
     next!(prog)
     mapf = mapfs[k]
     solution = feasibility_search(
         mapf;
-        conflict_price=1.,
+        conflict_price=1.0,
         conflict_price_increase=1e-2,
         neighborhood_size=5,
         show_progress=false,
@@ -83,104 +83,83 @@ prog = Progress(K; desc="Feasibility search: ");
     solutions_lns2[k] = solution
 end
 
-## Apply local search
-
-# solutions_coop_lns1 = Vector{Solution}(undef, K);
-# @threads for k in 1:K
-#     @info "Instance $k solved by thread $(threadid()) (coop + LNS1)"
-#     mapf = mapfs[k]
-#     solution = deepcopy(solutions_coop[k])
-#     large_neighborhood_search!(
-#         solution, mapf; steps=A, neighborhood_size=A ÷ 10, progress=false
-#     )
-#     solutions_coop_lns1[k] = solution
-# end
-
-# solutions_lns2_lns1 = Vector{Solution}(undef, K);
-# @threads for k in 1:K
-#     @info "Instance $k solved by thread $(threadid()) (coop + LNS2)"
-#     mapf = mapfs[k]
-#     solution = deepcopy(solutions_lns2[k])
-#     large_neighborhood_search!(
-#         solution, mapf; steps=A, neighborhood_size=A ÷ 10, progress=false
-#     )
-#     solutions_lns2_lns1[k] = solution
-# end
-
 ## Eval dataset
 
 mean(flowtime.(solutions_indep, mapfs))
 mean(flowtime.(solutions_coop, mapfs))
 mean(flowtime.(solutions_lns2, mapfs))
-# mean(flowtime.(solutions_coop_lns1, mapfs))
-# mean(flowtime.(solutions_lns2_lns1, mapfs))
 
 solutions_opt = solutions_lns2;
 
 ## Build features
 
-imitate = "opt"
-
-X = Vector{Array{Float64, 3}}(undef, K);
-Y = Vector{Matrix{Int}}(undef, K);
-
-@profview for _ = 1:100; solution_to_mat(solutions_indep[1], mapfs[1]); end
-
-prog = Progress(K; desc="Instance embedding: ");
+X = Vector{Matrix{Float64}}(undef, K * A);
+Y = Vector{SparseVector{Int}}(undef, K * A);
+prog = Progress(K; desc="Instance embedding");
 @threads for k in 1:K
     next!(prog)
-    mapf, solution = mapfs[k], solutions_opt[k]
-    X[k] = mapf_embedding(mapf)
-    Y[k] = solution_to_mat(solution, mapf)
+    mapf = mapfs[k]
+    solution_indep = solutions_indep[k]
+    solution_opt = solutions_opt[k]
+    for a in 1:A
+        p = (k - 1) * A + a
+        X[p] = all_edges_embedding(a, solution_indep, mapf)
+        Y[p] = path_to_vec_sparse(solution_opt[a], mapf)
+    end
 end
 
 F = size(X[1], 1)
 
 ## Define pipeline
 
-function maximizer(θ; mapf)
-    edge_weights_mat = -θ
-    solution = independent_dijkstra(mapf, edge_weights_mat)
-    ŷ = solution_to_mat(solution, mapf)
+function maximizer(θ; a, mapf)
+    edge_weights_vec = -θ
+    timed_path = agent_dijkstra(a, mapf, edge_weights_vec)
+    ŷ = path_to_vec_sparse(timed_path, mapf)
     return ŷ
 end
 
 ## Initialization
 
-make_positive(z) = softplus.(z);
-switch_sign(z) = -z;
+make_negative(z) = .-softplus.(z) .- 1e-2;
 dropfirstdim(z) = dropdims(z; dims=1);
 
 perturbed = PerturbedLogNormal(maximizer; ε=1, M=5)
 fenchel_young_loss = FenchelYoungLoss(perturbed)
 
-initial_encoder = Chain(
-    Dense(F, F, relu), Dense(F, 1), dropfirstdim, make_positive, switch_sign
-)
+initial_encoder = Chain(Dense(F, 1), dropfirstdim, make_negative)
 encoder = deepcopy(initial_encoder)
 
 par = Flux.params(encoder);
 opt = ADAM()
 
 diversification = (
-    sum(!iszero, perturbed(encoder(X[1]); mapf=mapfs[1])) /
-    sum(!iszero, maximizer(encoder(X[1]); mapf=mapfs[1]))
+    sum(!iszero, perturbed(-mapfs[1].edge_weights_vec; a=1, mapf=mapfs[1])) /
+    sum(!iszero, maximizer(-mapfs[1].edge_weights_vec; a=1, mapf=mapfs[1]))
 )
 
 ## Training
 
-nb_epochs = 1
+nb_epochs = 10
 losses, distances = Float64[], Float64[]
-@profview for epoch in 1:nb_epochs
-    l = 0.0
-    d = 0.0
-    @showprogress "Epoch $epoch" for k in 1:K
-        mapf, x, y = mapfs[k], X[k], Y[k]
-        ŷ = maximizer(encoder(x); mapf=mapf)
-        d += sum(abs, ŷ - y)
-        gs = gradient(par) do
-            l += fenchel_young_loss(encoder(x), y; mapf=mapf)
+for epoch in 1:nb_epochs
+    l, d = 0.0, 0.0
+    prog = Progress(K * A; desc="Epoch $epoch")
+    grads = Vector{Flux.Zygote.Grads}(undef, K * A)
+    @threads for k in 1:K
+        @threads for a = 1:A
+            next!(prog)
+            mapf = mapfs[k]
+            p = (k - 1) * A + a
+            x, y = X[p], Y[p]
+            ŷ = maximizer(encoder(x); a=a, mapf=mapf)
+            d += sum(abs, ŷ - y)
+            grads[p] = gradient(par) do
+                l += fenchel_young_loss(encoder(x), y; a=a, mapf=mapf)
+            end
         end
+    end
+    for gs in grads
         Flux.update!(opt, par, gs)
     end
     @info "After epoch $epoch: loss $l - distance $d"
@@ -189,15 +168,16 @@ losses, distances = Float64[], Float64[]
     epoch > 1 && losses[end] ≈ losses[end - 1] && break
 end;
 
-lineplot(losses, xlabel="Epoch", ylabel="FYL") |> println
-lineplot(distances, xlabel="Epoch", ylabel="Hamming dist") |> println
+println(lineplot(losses; xlabel="Epoch", ylabel="FYL"))
+println(lineplot(distances; xlabel="Epoch", ylabel="Hamming dist"))
 
 ## Eval
 
 solutions_pred_init = Vector{Solution}(undef, K);
 solutions_pred_final = Vector{Solution}(undef, K);
-@threads for k in 1:K  # Error
-    @info "Instance $k solved by thread $(threadid())"
+prog = Progress(K; desc="Prediction");
+@threads for k in 1:K
+    next!(prog)
     mapf = mapfs[k]
     edge_weights_mat_init = reduce(hcat, -initial_encoder(X[(k - 1) * A + a]) for a in 1:A)
     edge_weights_mat_final = reduce(hcat, -encoder(X[(k - 1) * A + a]) for a in 1:A)

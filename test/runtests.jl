@@ -1,6 +1,6 @@
 using Flatland
 using Test
 
-@testset "Flatland.jl" begin
-    # Write your tests here.
+@testset verbose = true "Flatland.jl" begin
+    include("flatland.jl")
 end

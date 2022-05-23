@@ -12,6 +12,7 @@ include("graph.jl")
 include("utils.jl")
 include("mapf.jl")
 
+export FlatlandMAPF
 export flatland_mapf
 
 function __init__()

@@ -44,16 +44,16 @@ pyenv = rail_env.RailEnv(;
     random_seed=63,
 )
 
-mapfs = Vector{FlatlandMAPF}(undef, K);
-@showprogress "Generating instances" for k in 1:K
+mapfs = Vector{FlatlandMAPF}(undef, 2K);
+@showprogress "Generating instances" for k in 1:2K
     pyenv.reset()
     mapfs[k] = flatland_mapf(pyenv)
 end
 
 ## Lower bound
 
-solutions_indep = Vector{Solution}(undef, K);
-@threads for k in 1:K
+solutions_indep = Vector{Solution}(undef, 2K);
+@threads for k in 1:2K
     mapf = mapfs[k]
     solution = independent_dijkstra(mapf)
     solutions_indep[k] = solution
@@ -61,21 +61,21 @@ end
 
 ## Feasible solutions
 
-solutions_coop = Vector{Solution}(undef, K);
-@threads for k in 1:K
+solutions_coop = Vector{Solution}(undef, 2K);
+@threads for k in 1:2K
     mapf = mapfs[k]
     solution = cooperative_astar(mapf, 1:A)
     solutions_coop[k] = solution
 end
 
-solutions_lns2 = Vector{Solution}(undef, K);
-prog = Progress(K; desc="Feasibility search");
-@threads for k in 1:K
+solutions_lns2 = Vector{Solution}(undef, 2K);
+prog = Progress(2K; desc="Feasibility search");
+@threads for k in 1:2K
     next!(prog)
     mapf = mapfs[k]
     solution = feasibility_search(
         mapf;
-        conflict_price=1.0,
+        conflict_price=1.,
         conflict_price_increase=1e-2,
         neighborhood_size=5,
         show_progress=false,
@@ -83,27 +83,27 @@ prog = Progress(K; desc="Feasibility search");
     solutions_lns2[k] = solution
 end
 
-## Eval dataset
+## Eval on train dataset
 
-mean(flowtime.(solutions_indep, mapfs))
-mean(flowtime.(solutions_coop, mapfs))
-mean(flowtime.(solutions_lns2, mapfs))
+mean(flowtime.(solutions_coop[1:K], mapfs[1:K]))
+mean(flowtime.(solutions_lns2[1:K], mapfs[1:K]))
+mean(flowtime.(solutions_indep[1:K], mapfs[1:K]))
 
 solutions_opt = solutions_lns2;
 
 ## Build features
 
-X = Vector{Matrix{Float64}}(undef, K * A);
-Y = Vector{SparseVector{Int}}(undef, K * A);
-prog = Progress(K; desc="Instance embedding");
-@threads for k in 1:K
+X = Vector{Matrix{Float64}}(undef, 2K * A);
+Y = Vector{SparseVector{Int}}(undef, 2K * A);
+prog = Progress(2K; desc="Instance embedding");
+@threads for k in 1:2K
     next!(prog)
     mapf = mapfs[k]
     solution_indep = solutions_indep[k]
     solution_opt = solutions_opt[k]
     for a in 1:A
         p = (k - 1) * A + a
-        X[p] = all_edges_embedding(a, solution_indep, mapf)
+        X[p] = mapf_embedding(a, solution_indep, mapf)
         Y[p] = path_to_vec_sparse(solution_opt[a], mapf)
     end
 end
@@ -121,17 +121,21 @@ end
 
 ## Initialization
 
-make_negative(z) = .-softplus.(z) .- 1e-2;
+make_negative(z) = .-softplus.(z) .- 1e-1;
 dropfirstdim(z) = dropdims(z; dims=1);
 
 perturbed = PerturbedLogNormal(maximizer; ε=1, M=5)
 fenchel_young_loss = FenchelYoungLoss(perturbed)
 
-initial_encoder = Chain(Dense(F, 1), dropfirstdim, make_negative)
+initial_encoder = Chain(
+    Dense(F, 1, identity),
+    dropfirstdim,
+    make_negative,
+)
 encoder = deepcopy(initial_encoder)
 
 par = Flux.params(encoder);
-opt = ADAM()
+opt = ADAM(1e-4)
 
 diversification = (
     sum(!iszero, perturbed(-mapfs[1].edge_weights_vec; a=1, mapf=mapfs[1])) /
@@ -140,14 +144,14 @@ diversification = (
 
 ## Training
 
-nb_epochs = 10
+nb_epochs = 30
 losses, distances = Float64[], Float64[]
 for epoch in 1:nb_epochs
     l, d = 0.0, 0.0
     prog = Progress(K * A; desc="Epoch $epoch")
     grads = Vector{Flux.Zygote.Grads}(undef, K * A)
     @threads for k in 1:K
-        @threads for a = 1:A
+        @threads for a in 1:A
             next!(prog)
             mapf = mapfs[k]
             p = (k - 1) * A + a
@@ -168,15 +172,15 @@ for epoch in 1:nb_epochs
     epoch > 1 && losses[end] ≈ losses[end - 1] && break
 end;
 
-println(lineplot(losses; xlabel="Epoch", ylabel="FYL"))
-println(lineplot(distances; xlabel="Epoch", ylabel="Hamming dist"))
+println(lineplot(log.(losses); xlabel="Epoch", ylabel="FYL"))
+println(lineplot(log.(distances); xlabel="Epoch", ylabel="Hamming dist"))
 
 ## Eval
 
-solutions_pred_init = Vector{Solution}(undef, K);
-solutions_pred_final = Vector{Solution}(undef, K);
-prog = Progress(K; desc="Prediction");
-@threads for k in 1:K
+solutions_pred_init = Vector{Solution}(undef, 2K);
+solutions_pred_final = Vector{Solution}(undef, 2K);
+prog = Progress(2K; desc="Prediction");
+@threads for k in 1:2K
     next!(prog)
     mapf = mapfs[k]
     edge_weights_mat_init = reduce(hcat, -initial_encoder(X[(k - 1) * A + a]) for a in 1:A)
@@ -185,9 +189,19 @@ prog = Progress(K; desc="Prediction");
     solutions_pred_final[k] = cooperative_astar(mapf, 1:A, edge_weights_mat_final)
 end
 
-mean(flowtime.(solutions_indep, mapfs))
-mean(flowtime.(solutions_coop, mapfs))
-mean(flowtime.(solutions_opt, mapfs))
+## Eval on training set
 
-mean(flowtime.(solutions_pred_init, mapfs))
-mean(flowtime.(solutions_pred_final, mapfs))
+mean(flowtime.(solutions_pred_init[1:K], mapfs[1:K]))
+mean(flowtime.(solutions_coop[1:K], mapfs[1:K]))
+mean(flowtime.(solutions_pred_final[1:K], mapfs[1:K]))
+mean(flowtime.(solutions_opt[1:K], mapfs[1:K]))
+mean(flowtime.(solutions_indep[1:K], mapfs[1:K]))
+
+
+## Eval on test set
+
+mean(flowtime.(solutions_pred_init[K+1:2K], mapfs[K+1:2K]))
+mean(flowtime.(solutions_coop[K+1:2K], mapfs[K+1:2K]))
+mean(flowtime.(solutions_pred_final[K+1:2K], mapfs[K+1:2K]))
+mean(flowtime.(solutions_opt[K+1:2K], mapfs[K+1:2K]))
+mean(flowtime.(solutions_indep[K+1:2K], mapfs[K+1:2K]))

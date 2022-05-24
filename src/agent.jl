@@ -1,4 +1,17 @@
-Base.@kwdef mutable struct Agent
+"""
+    Agent
+
+Julia structure for a Flatland agent.
+
+# Fields
+- `handle::Int`
+- `earliest_departure::Int`
+- `latest_arrival::Int`
+- `initial_position::Tuple{Int,Int}`
+- `initial_direction::Int`
+- `target_position::Tuple{Int,Int}`
+"""
+Base.@kwdef struct Agent
     handle::Int
     earliest_departure::Int
     latest_arrival::Int

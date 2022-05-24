@@ -1,3 +1,5 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Flatland = "400e1bb1-92f7-43f0-b566-dfcdca3527d9"
+InferOpt = "4846b161-c94e-4150-8dac-c7ae193c601f"
+MultiAgentPathFinding = "1f5aa91a-953b-4f4c-bed6-d21f3af349fa"

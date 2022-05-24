@@ -1,3 +1,8 @@
+"""
+    FlatlandGraph
+
+Julia structure for the underlying graph of a Flatland network.
+"""
 const FlatlandGraph = DataDiGraph{Int,NTuple{4,Int},Nothing,Float64,Matrix{UInt16}}
 
 function flatland_graph(pyenv::Py, agents::Vector{Agent})

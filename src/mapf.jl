@@ -1,3 +1,8 @@
+"""
+    FlatlandMAPF
+
+Concrete subtype of `MultiAgentPathFinding.MAPF` meant to store a full Flatland instance.
+"""
 const FlatlandMAPF = MAPF{FlatlandGraph}
 
 function flatland_vertex_conflicts(g::FlatlandGraph, v::Integer)
@@ -10,6 +15,15 @@ function flatland_vertex_conflicts(g::FlatlandGraph, v::Integer)
     end
 end
 
+"""
+    flatland_mapf(pyenv)
+
+Convert a Python environment object into a [`FlatlandMAPF`](@ref).
+
+The following features are not yet supported:
+- speed profiles
+- malfunctions
+"""
 function flatland_mapf(pyenv::Py)
     agents = [Agent(pyagent) for pyagent in pyenv.agents]
     g = flatland_graph(pyenv, agents)

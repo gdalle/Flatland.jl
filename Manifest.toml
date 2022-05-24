@@ -492,12 +492,6 @@ git-tree-sha1 = "4888af84657011a65afc7a564918d281612f983a"
 uuid = "86223c79-3864-5bf0-83f7-82e725a168b6"
 version = "1.7.0"
 
-[[deps.GridGraphs]]
-deps = ["DataStructures", "Graphs", "SparseArrays"]
-git-tree-sha1 = "64e9163dfc809b34d11fa684ef1a43957fbd075a"
-uuid = "dd2b58c7-5af7-4f17-9e46-57c68ac813fb"
-version = "0.5.0"
-
 [[deps.GridLayoutBase]]
 deps = ["GeometryBasics", "InteractiveUtils", "Observables"]
 git-tree-sha1 = "e7b3493c3e64d072a9f22c4b24bc51874a3edcdf"
@@ -557,7 +551,9 @@ version = "1.0.0"
 
 [[deps.InferOpt]]
 deps = ["ChainRulesCore", "LinearAlgebra", "Random", "SimpleTraits", "SparseArrays", "Statistics", "Test"]
-path = "../InferOpt.jl"
+git-tree-sha1 = "af38e0cf10dcf0ce2048ed09adbd3f332c112a00"
+repo-rev = "giom"
+repo-url = "https://github.com/axelparmentier/InferOpt.jl"
 uuid = "4846b161-c94e-4150-8dac-c7ae193c601f"
 version = "0.1.0"
 
@@ -888,10 +884,12 @@ version = "0.3.3"
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
 
 [[deps.MultiAgentPathFinding]]
-deps = ["ColorTypes", "DataStructures", "Graphs", "GridGraphs", "LinearAlgebra", "ProgressMeter", "Random", "SparseArrays", "Statistics", "StatsBase"]
-path = "../MultiAgentPathFinding.jl"
+deps = ["DataStructures", "Graphs", "LinearAlgebra", "ProgressMeter", "Random", "SparseArrays", "Statistics", "StatsBase"]
+git-tree-sha1 = "819b1e0075ed6422540c326617474fad886b9842"
+repo-rev = "main"
+repo-url = "https://github.com/gdalle/MultiAgentPathFinding.jl"
 uuid = "1f5aa91a-953b-4f4c-bed6-d21f3af349fa"
-version = "0.1.0"
+version = "0.2.0"
 
 [[deps.NNlib]]
 deps = ["Adapt", "ChainRulesCore", "Compat", "LinearAlgebra", "Pkg", "Requires", "Statistics"]

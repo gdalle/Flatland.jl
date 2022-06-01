@@ -32,7 +32,7 @@ solution_coop = cooperative_astar(mapf, 1:nb_agents(mapf));
 is_feasible(solution_coop, mapf)
 flowtime(solution_coop, mapf)
 
-solution_lns2 = feasibility_search(
+solution_lns2, steps = feasibility_search(
     mapf; neighborhood_size=5, conflict_price=1.0, conflict_price_increase=1e-2
 );
 is_feasible(solution_lns2, mapf)

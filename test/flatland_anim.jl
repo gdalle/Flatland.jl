@@ -14,26 +14,42 @@ line_generator = line_generators.sparse_line_generator()
 
 pyenv = rail_env.RailEnv(;
     width=40,
-    height=40,
-    number_of_agents=50,
+    height=25,
+    number_of_agents=30,
     rail_generator=rail_generator,
     line_generator=line_generator,
-    random_seed=11,
+    random_seed=11
 )
 
 pyenv.reset();
 mapf = flatland_mapf(pyenv);
 
-solution_coop = cooperative_astar(mapf, 1:nb_agents(mapf));
-is_feasible(solution_coop, mapf)
-flowtime(solution_coop, mapf)
+solution_coop_bad = cooperative_astar(mapf, reverse(1:nb_agents(mapf)));
+solution_coop_good = cooperative_astar(mapf, 1:nb_agents(mapf));
+is_feasible(solution_coop_bad, mapf)
+is_feasible(solution_coop_good, mapf)
+flowtime(solution_coop_bad, mapf)
+flowtime(solution_coop_good, mapf)
 
-fig, (A, XY, M) = plot_flatland_graph(mapf);
+framerate = 6
+
+fig, (A, XY, M, T) = plot_flatland_graph(mapf; title = "Prioritized planning with a bad order");
 fig
-solution = copy(solution_coop);
-framerate = 3
-tmax = max_time(solution)
-@showprogress for t in 1:tmax
-    A[], XY[], M[] = flatland_agent_coords(mapf, solution, t)
-    sleep(1 / framerate)
+tmax_bad = max_time(solution_coop_bad)
+record(fig, "coop_astar_bad.gif", 1:tmax_bad; framerate=framerate) do t
+    A[], XY[], M[] = flatland_agent_coords(mapf, solution_coop_bad, t)
+    T[] = "Time: $t"
 end
+
+fig, (A, XY, M, T) = plot_flatland_graph(mapf; title = "Prioritized planning with a better order");
+fig
+tmax_good = max_time(solution_coop_good)
+record(fig, "coop_astar_good.gif", 1:tmax_good; framerate=framerate) do t
+    A[], XY[], M[] = flatland_agent_coords(mapf, solution_coop_good, t)
+    T[] = "Time: $t"
+end
+
+# @showprogress for t in 1:tmax
+#     A[], XY[], M[] = flatland_agent_coords(mapf, solution, t)
+#     sleep(1 / framerate)
+# end

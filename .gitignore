@@ -4,3 +4,7 @@
 # /Manifest.toml
 /docs/build/
 .CondaPkg
+
+*.mp4
+*.mkv
+*.gif

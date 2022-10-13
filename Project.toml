@@ -22,7 +22,7 @@ Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
 CondaPkg = "0.2.10"
-GLMakie = "0.6.3"
+GLMakie = "0.6.3, 0.7"
 Graphs = "1.7"
 MetaDataGraphs = "0.1"
 ProgressMeter = "1.7.2"

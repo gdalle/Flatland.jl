@@ -49,13 +49,16 @@ jobs:
       - uses: julia-actions/setup-julia@v1
         with:
           version: "~1.9.0-0"
+      - run: export DISPLAY=:0
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-docdeploy@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+        with:
+          prefix: xvfb-run -s '-screen 0 1024x768x24'
       - run: |
-          DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --project=docs -e '
+          xvfb-run -s '-screen 0 1024x768x24' julia --project=docs -e '
             using Documenter: DocMeta, doctest
             using Flatland
             DocMeta.setdocmeta!(Flatland, :DocTestSetup, :(using Flatland); recursive=true)

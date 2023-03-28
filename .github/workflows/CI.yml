@@ -33,9 +33,8 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y xorg-dev mesa-utils xvfb libgl1 freeglut3-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev libxext-dev
       - uses: julia-actions/julia-buildpkg@v1
       - name: Run tests
-        continue-on-error: true
         run: |
-          DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --color=yes --project=monorepo -e 'using Pkg; Pkg.test("GLMakie", coverage=true)' && echo "TESTS_SUCCESSFUL=true" >> $GITHUB_ENV
+          DISPLAY=:0 xvfb-run -s '-screen 0 1024x768x24' julia --color=yes -e 'using Pkg; Pkg.test("Flatland", coverage=true)' && echo "TESTS_SUCCESSFUL=true" >> $GITHUB_ENV
       - uses: julia-actions/julia-processcoverage@v1
       - uses: codecov/codecov-action@v2
         with:

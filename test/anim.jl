@@ -18,7 +18,7 @@ pyenv = rail_env.RailEnv(;
     number_of_agents=30,
     rail_generator=rail_generator,
     line_generator=line_generator,
-    random_seed=11
+    random_seed=11,
 )
 
 pyenv.reset();
@@ -33,7 +33,9 @@ flowtime(solution_coop_good, mapf)
 
 framerate = 6
 
-fig, (A, XY, M, T) = plot_flatland_graph(mapf; title = "Prioritized planning with a bad order");
+fig, (A, XY, M, T) = plot_flatland_graph(
+    mapf; title="Prioritized planning with a bad order"
+);
 fig
 tmax_bad = max_time(solution_coop_bad)
 record(fig, "coop_astar_bad.gif", 1:tmax_bad; framerate=framerate) do t
@@ -41,7 +43,9 @@ record(fig, "coop_astar_bad.gif", 1:tmax_bad; framerate=framerate) do t
     T[] = "Time: $t"
 end
 
-fig, (A, XY, M, T) = plot_flatland_graph(mapf; title = "Prioritized planning with a better order");
+fig, (A, XY, M, T) = plot_flatland_graph(
+    mapf; title="Prioritized planning with a better order"
+);
 fig
 tmax_good = max_time(solution_coop_good)
 record(fig, "coop_astar_good.gif", 1:tmax_good; framerate=framerate) do t

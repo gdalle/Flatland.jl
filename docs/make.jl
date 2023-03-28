@@ -14,13 +14,7 @@ makedocs(;
         assets=String[],
         edit_branch="main",
     ),
-    pages=[
-        "Home" => "index.md",
-        "API reference" => "api.md",
-    ],
+    pages=["Home" => "index.md", "API reference" => "api.md"],
 )
 
-deploydocs(;
-    repo="github.com/gdalle/Flatland.jl",
-    devbranch="main",
-)
+deploydocs(; repo="github.com/gdalle/Flatland.jl", devbranch="main")

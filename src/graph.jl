@@ -16,9 +16,7 @@ function flatland_graph(pyenv::Py, agents::Vector{Agent})
     grid = pyconvert(Matrix{UInt16}, pyenv.rail.grid)
 
     # Initialize g
-    g = DataDiGraph{Int}(;
-        VL=NTuple{4,Int}, VD=Nothing, ED=Float64, graph_data=grid
-    )
+    g = DataDiGraph{Int}(; VL=NTuple{4,Int}, VD=Nothing, ED=Float64, graph_data=grid)
 
     # Create vertices from non empty grid cells
     for i in 1:height, j in 1:width

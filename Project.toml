@@ -5,34 +5,37 @@ version = "0.1.0"
 
 [deps]
 CondaPkg = "992eb4ea-22a4-4c89-a5bb-47a3300528ab"
-GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
 Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
-InferOpt = "4846b161-c94e-4150-8dac-c7ae193c601f"
-Lux = "b2108857-7c20-44ae-9111-449ecde12c47"
-MetaDataGraphs = "886fa1cc-5380-4008-8113-0516998d4847"
+MetaGraphsNext = "fa8bd995-216d-47f1-8a91-f3b68fbeb377"
 MultiAgentPathFinding = "1f5aa91a-953b-4f4c-bed6-d21f3af349fa"
-ProgressMeter = "92933f4c-e287-5a05-a399-4b506db050ca"
 PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
-Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
-UnicodePlots = "b8865327-cd53-5732-bb35-84acbb429228"
-Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
-CondaPkg = "0.2.10"
-GLMakie = "0.6.3"
-Graphs = "1.7"
-MetaDataGraphs = "0.1"
-ProgressMeter = "1.7.2"
+CondaPkg = "0.2"
+GLMakie = "0.6"
+Graphs = "1.8"
+MetaGraphsNext = "0.5"
+MultiAgentPathFinding = "0.3"
 PythonCall = "0.8"
-Requires = "1.3"
-UnicodePlots = "2.11.2"
-julia = "1.7"
+julia = "1.9"
+
+[extensions]
+FlatlandAnimExt = "GLMakie"
 
 [extras]
+Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
+JuliaFormatter = "98e50ef6-434e-11e9-1051-2b60c6c9e899"
+MultiAgentPathFinding = "1f5aa91a-953b-4f4c-bed6-d21f3af349fa"
+PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test"]
+test = ["Aqua", "Documenter", "GLMakie", "JuliaFormatter", "MultiAgentPathFinding", "PythonCall", "Test"]
+
+[weakdeps]
+GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"

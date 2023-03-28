@@ -104,6 +104,6 @@ function plot_flatland_graph(mapf::FlatlandMAPF; title)
     resize_to_layout!(fig)
     A, XY, M = add_agents!(ax)
     T = Observable("Time: 0")
-    text!(ax, @lift(string($T)); position=(1,1), color=:black)
+    text!(ax, @lift(string($T)); position=(1, 1), color=:black)
     return fig, (A, XY, M, T)
 end

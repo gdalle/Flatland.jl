@@ -1,9 +1,8 @@
-"""
-    FlatlandGraph
-
-Julia structure for the underlying graph of a Flatland network.
-"""
-const FlatlandGraph = DataDiGraph{Int,NTuple{4,Int},Nothing,Float64,Matrix{UInt16}}
+struct VertexLabel
+    position::Tuple{Int,Int}
+    direction::Direction
+    role::Role
+end
 
 function flatland_graph(pyenv::Py, agents::Vector{Agent})
     # Find stations
@@ -16,73 +15,81 @@ function flatland_graph(pyenv::Py, agents::Vector{Agent})
     grid = pyconvert(Matrix{UInt16}, pyenv.rail.grid)
 
     # Initialize g
-    g = DataDiGraph{Int}(; VL=NTuple{4,Int}, VD=Nothing, ED=Float64, graph_data=grid)
+    g = MetaGraph(
+        DiGraph();
+        label_type=VertexLabel,
+        vertex_data_type=Nothing,
+        edge_data_type=Int,
+        graph_data=grid,
+    )
 
     # Create vertices from non empty grid cells
     for i in 1:height, j in 1:width
         cell = grid[i, j]
+        position = (i, j)
         if cell > 0
             transition_map = bitstring(cell)
             # Real vertices
-            for direction in CARDINAL_POINTS
+            for direction in (north, east, south, west)
                 if direction_exists(transition_map, direction)
-                    label = (i, j, direction, REAL)
-                    add_vertex!(g, label)
+                    label = VertexLabel(position, direction, real)
+                    add_vertex!(g, label, nothing)
                 end
             end
             # Departure vertices
-            if (i, j) in initial_positions
-                for direction in CARDINAL_POINTS
+            if position in initial_positions
+                for direction in (north, east, south, west)
                     if direction_exists(transition_map, direction)
-                        label = (i, j, direction, DEPARTURE)
-                        add_vertex!(g, label)
+                        label = VertexLabel(position, direction, departure)
+                        add_vertex!(g, label, nothing)
                     end
                 end
             end
             # Arrival vertices
-            if (i, j) in target_positions
-                label = (i, j, NO_DIRECTION, ARRIVAL)
-                add_vertex!(g, label)
+            if position in target_positions
+                label = VertexLabel(position, no_direction, arrival)
+                add_vertex!(g, label, nothing)
             end
         end
     end
 
     # Create out edges for every vertex
     for v in vertices(g)
-        label_s = get_label(g, v)
-        (i, j, direction, kind) = label_s
-        if kind == REAL  # from real vertices
+        label_s = label_for(g, v)
+        (; position, direction, role) = label_s
+        (i, j) = position
+        if role == real  # from real vertices
             cell = grid[i, j]
             transition_map = bitstring(cell)
             # to themselves
-            add_edge!(g, label_s, label_s, 1.0)
+            add_edge!(g, label_s, label_s, 1)
             # to other real vertices
-            for out_direction in CARDINAL_POINTS
+            for out_direction in (north, east, south, west)
                 if transition_exists(transition_map, direction, out_direction)
-                    i2, j2 = neighbor_cell(i, j, out_direction)
-                    label_d = (i2, j2, out_direction, REAL)
-                    add_edge!(g, label_s, label_d, 1.0)
+                    neighbor_position = neighbor_cell(position, out_direction)
+                    label_d = VertexLabel(neighbor_position, out_direction, real)
+                    add_edge!(g, label_s, label_d, 1)
                 end
             end
             # to arrival vertices
-            if (i, j) in target_positions
-                label_d = (i, j, NO_DIRECTION, ARRIVAL)
-                add_edge!(g, label_s, label_d, 0.0)
+            if position in target_positions
+                label_d = VertexLabel(position, no_direction, arrival)
+                add_edge!(g, label_s, label_d, 0)
             end
-        elseif kind == DEPARTURE  # from departure vertices
+        elseif role == departure  # from departure vertices
             # to themselves
-            add_edge!(g, label_s, label_s, 1.0)
+            add_edge!(g, label_s, label_s, 1)
             # to real vertices
-            label_d = (i, j, direction, REAL)
-            add_edge!(g, label_s, label_d, 0.0)
-        elseif kind == ARRIVAL  # from arrival vertices
+            label_d = VertexLabel(position, direction, real)
+            add_edge!(g, label_s, label_d, 0)
+        elseif role == arrival  # from arrival vertices
             # to themselves
-            add_edge!(g, label_s, label_s, 0.0)
+            add_edge!(g, label_s, label_s, 0)
         end
     end
     return g
 end
 
-get_grid(g::FlatlandGraph) = get_data(g)
-get_height(g::FlatlandGraph) = size(get_grid(g), 1)
-get_width(g::FlatlandGraph) = size(get_grid(g), 2)
+get_grid(g) = g.graph_data
+get_height(g) = size(get_grid(g), 1)
+get_width(g) = size(get_grid(g), 2)

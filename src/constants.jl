@@ -1,11 +1,2 @@
-const NO_DIRECTION = 0
-const NORTH = 1
-const EAST = 2
-const SOUTH = 3
-const WEST = 4
-
-const CARDINAL_POINTS = (NORTH, EAST, SOUTH, WEST)
-
-const REAL = 1
-const DEPARTURE = 2
-const ARRIVAL = 3
+@enum Direction no_direction = 0 north = 1 east = 2 south = 3 west = 4
+@enum Role real departure arrival

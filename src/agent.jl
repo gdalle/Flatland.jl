@@ -1,22 +1,9 @@
-"""
-    Agent
-
-Julia structure for a Flatland agent.
-
-# Fields
-- `handle::Int`
-- `earliest_departure::Int`
-- `latest_arrival::Int`
-- `initial_position::Tuple{Int,Int}`
-- `initial_direction::Int`
-- `target_position::Tuple{Int,Int}`
-"""
 Base.@kwdef struct Agent
     handle::Int
     earliest_departure::Int
     latest_arrival::Int
     initial_position::Tuple{Int,Int}
-    initial_direction::Int
+    initial_direction::Direction
     target_position::Tuple{Int,Int}
 end
 
@@ -25,7 +12,7 @@ function Agent(pyagent::Py)
     earliest_departure = pyconvert(Int, pyagent.earliest_departure) + 1
     latest_arrival = pyconvert(Int, pyagent.latest_arrival) + 1
     initial_position = pyconvert(Tuple{Int,Int}, pyagent.initial_position) .+ 1
-    initial_direction = pyconvert(Int, pyagent.initial_direction) + 1
+    initial_direction = Direction(pyconvert(Int, pyagent.initial_direction) + 1)
     target_position = pyconvert(Tuple{Int,Int}, pyagent.target) .+ 1
 
     return Agent(;
@@ -39,11 +26,11 @@ function Agent(pyagent::Py)
 end
 
 function initial_label(agent::Agent)
-    return (agent.initial_position..., agent.initial_direction, DEPARTURE)
+    return VertexLabel(agent.initial_position, agent.initial_direction, departure)
 end
 
 function target_label(agent::Agent)
-    return (agent.target_position..., NO_DIRECTION, ARRIVAL)
+    return VertexLabel(agent.target_position, no_direction, arrival)
 end
 
 function station_positions(agents::AbstractVector{Agent})

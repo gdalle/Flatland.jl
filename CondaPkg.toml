@@ -1,6 +1,0 @@
-[deps]
-python = ">=3.6"
-
-[pip.deps]
-flatland-rl = ">=3.0.15"
-pyyaml = ">=6.0"

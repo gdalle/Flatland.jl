@@ -1,0 +1,6 @@
+[deps]
+Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+Flatland = "bf95c41c-5acb-4adb-a9da-d7e97402d07e"
+
+[compat]
+Documenter = "1"

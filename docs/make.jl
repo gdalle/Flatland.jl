@@ -1,25 +1,23 @@
 using Flatland
-using Documenter
+using Documenter: Documenter, DocMeta, makedocs, deploydocs
 
 DocMeta.setdocmeta!(Flatland, :DocTestSetup, :(using Flatland); recursive=true)
+
+cp(
+    joinpath(dirname(@__DIR__), "README.md"),
+    joinpath(@__DIR__, "src", "index.md");
+    force=true,
+)
 
 makedocs(;
     modules=[Flatland],
     authors="Guillaume Dalle, Chun-Tso Tsai",
-    repo="https://github.com/gdalle/Flatland.jl/blob/{commit}{path}#{line}",
     sitename="Flatland.jl",
     format=Documenter.HTML(;
         prettyurls=get(ENV, "CI", "false") == "true",
         canonical="https://gdalle.github.io/Flatland.jl",
-        edit_link="main",
-        assets=String[],
     ),
-    pages=[
-        "Home" => "index.md",
-    ],
+    pages=["Home" => "index.md", "API reference" => "api.md"],
 )
 
-deploydocs(;
-    repo="github.com/gdalle/Flatland.jl",
-    devbranch="main",
-)
+deploydocs(; repo="github.com/gdalle/Flatland.jl", devbranch="main", push_preview=true)
